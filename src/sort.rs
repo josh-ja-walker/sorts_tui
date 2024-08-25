@@ -1,8 +1,8 @@
 use std::io::{stdout, Write};
-use std::{thread, time, str::FromStr};
+use std::{thread, time};
 use rand::{thread_rng, seq::SliceRandom};
 
-const MARK_NUM: u32 = 10;
+const MARK_NUM: u32 = 1000;
 const SLEEP_MILLIS: u64 = 10;
 
 macro_rules! sleep {
@@ -33,10 +33,11 @@ impl Sort {
 				print!("{esc}[2J{esc}[1;1H", esc = 27 as char); // Clear console
 			},
 			
-			Sort::Bubble => bubble_sort(&mut nums),
-			Sort::Insertion => todo!(),
-			Sort::Merge => todo!(),
-			Sort::Quick => todo!(),
+			// Sort::Bubble => bubble_sort(&mut nums),
+			// Sort::Insertion => todo!(),
+			// Sort::Merge => todo!(),
+			// Sort::Quick => todo!(),
+			_ => todo!(),
 		};
 	}   
 }
