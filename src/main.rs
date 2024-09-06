@@ -2,21 +2,53 @@ use console::Term;
 use dialoguer::{Input, Select};
 
 use tui::{backend::CrosstermBackend, Terminal};
-use crossterm::{event::{DisableMouseCapture, EnableMouseCapture}, terminal::{EnterAlternateScreen, LeaveAlternateScreen}};
+use crossterm::{event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode}, terminal::{EnterAlternateScreen, LeaveAlternateScreen}};
 
 use strum::IntoEnumIterator;
 
-use std::{fmt::Display, io};
+use std::{fmt::{self, Display}, io, time::Duration};
 
 mod sort;
 mod sort_instance;
 
 use sort::Sort;
-use sort_instance::SortInstance;
+use sort_instance::{Count, SortInstance};
 
 const MIN: usize = 2;
+const DEFAULT: usize = 50;
 const MAX: usize = 100;
 
+#[derive(Debug)]
+enum Error {
+	Interrupted,
+	Quit,
+	IOError(io::Error),
+	DialoguerError(dialoguer::Error)
+}
+
+impl From<io::Error> for Error {
+	fn from(error: io::Error) -> Self {
+		Error::IOError(error)
+	}
+}
+
+impl From<dialoguer::Error> for Error {
+	fn from(error: dialoguer::Error) -> Self {
+		Error::DialoguerError(error)
+	}
+}
+
+impl Display for Error {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		write!(f, "{}", match self {
+				Error::Quit => String::from("quit"),
+				Error::Interrupted => String::from("interrupted"),
+				Error::IOError(io_err) => io_err.to_string(),
+				Error::DialoguerError(dialoguer_err) => dialoguer_err.to_string(),
+			}
+		)
+	}
+}
 
 /* Format select options */
 fn format_items<T>(options: Vec<T>) -> Vec<String> where T: Display {
@@ -25,39 +57,69 @@ fn format_items<T>(options: Vec<T>) -> Vec<String> where T: Display {
         .collect()
 }
 
-fn main() -> io::Result<()> {    
-	let sorts: Vec<Sort> = Sort::iter().collect();
-
+fn main() -> Result<(), Error> {    
 	loop {
-		let sort_choice = Select::new()
-			.with_prompt("Sorting Algorithms")
-			.items(&format_items(
-				sorts.iter()
-					.map(|s| format!("{s} Sort"))
-					.collect::<Vec<String>>()))
-			.report(false)
-			.default(0)
-			.interact()
-			.unwrap();
-
-		let num_items = Input::<usize>::new()
-			.with_prompt(format!("Enter number of items [{MIN} - {MAX}]"))
-			.validate_with(|n: &usize| (MIN..MAX).contains(n)
-				.then_some(())
-				.ok_or(format!("must be between {MIN} and {MAX}")))
-			.interact()
-			.unwrap();
-
-		let chosen_sort: Sort = sorts[sort_choice];
-		println!("Took {} iterations", run(chosen_sort.perform_with(num_items))?);
-
-		Term::stdout().read_line()?;
-		Term::stdout().clear_screen()?;
+		match run_loop() {
+			Ok(()) | Err(Error::Interrupted) => (),
+			Err(Error::Quit) => { break; },
+			err => err? 
+		}
 	}
+
+	Ok(())
 }
 
-/* Render and run  */
-fn run(sort_instance: SortInstance) -> io::Result<u64> {
+/* Proxy to handle quit and interrupted errors */
+fn run_loop() -> Result<(), Error> {
+	let chosen_sort: Sort = sort_choice()?;
+	let num_items = num_items_input()?;
+
+	let count = run(chosen_sort, num_items)?;
+
+	Term::stdout().write_line("Sorted")?;
+	Term::stdout().write_line(&format!("{} performed", count))?;
+	
+	Term::stdout().read_line()?;
+	Term::stdout().clear_screen()?;
+
+	Ok(())
+}
+
+/* Choose sort to run */
+fn sort_choice() -> Result<Sort, Error> {
+	let sorts: Vec<Sort> = Sort::iter().collect();
+	let mut options: Vec<String> = sorts.iter()
+		.map(Sort::to_string).collect();
+
+	options.push(String::from("Quit"));
+
+	let index = Select::new()
+		.with_prompt("Sorting Algorithms")
+		.items(&format_items(options))
+		.default(0)
+		.interact()?;
+
+	sorts.get(index).ok_or(Error::Quit).copied()
+}
+
+/* Input number of items */
+fn num_items_input() -> Result<usize, Error> {
+	let prompt: String = format!("Sort how many items? [{} - {}] (default = {})", MIN, MAX, DEFAULT);
+	
+	let n = Input::<usize>::new()
+		.with_prompt(prompt)
+		.validate_with(|n: &usize| (MIN..MAX + 1).contains(n)
+			.then_some(())
+			.ok_or(format!("must be between {} and {}", MIN, MAX)))
+		.default(DEFAULT)
+		.show_default(false)
+		.interact()?;
+
+	Ok(n)
+}
+
+/* Render and run */
+fn run(sort: Sort, num_items: usize) -> Result<Count, Error> {
     /* Setup terminal */
     crossterm::terminal::enable_raw_mode()?;
 
@@ -68,7 +130,7 @@ fn run(sort_instance: SortInstance) -> io::Result<u64> {
     let mut terminal = Terminal::new(backend)?;
 
 	/* Run sorting algorithm */
-	let iterations = sort_instance.run(&mut terminal)?;
+	let count = SortInstance::new(sort, num_items, &mut terminal).run()?;
 
     /* Restore terminal */
     crossterm::terminal::disable_raw_mode()?;
@@ -80,5 +142,18 @@ fn run(sort_instance: SortInstance) -> io::Result<u64> {
 
     terminal.show_cursor()?;
 
-    Ok(iterations)
+    Ok(count)
+}
+
+/* Returns other io error if interrupted */
+fn terminal_sleep(duration: Duration) -> Result<(), Error> {
+	if event::poll(duration)? {
+		if let Event::Key(key) = event::read()? {
+			if let KeyCode::Char('q') = key.code {
+				return Err(Error::Interrupted);
+			}
+		}
+	}
+	
+	Ok(())
 }

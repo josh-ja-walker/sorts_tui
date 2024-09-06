@@ -1,9 +1,9 @@
-use strum_macros::{Display, EnumIter};
+use std::fmt::{self, Display};
+
+use strum_macros::EnumIter;
 use tui::style::Color;
 
-use crate::sort_instance::SortInstance;
-
-#[derive(Clone, Copy, Display, EnumIter)]
+#[derive(Clone, Copy, EnumIter)]
 pub enum Sort {
 	Bogo,
 	Bubble,
@@ -12,18 +12,26 @@ pub enum Sort {
 	Quick
 }
 
-impl Sort {
-	pub fn perform_with(self, num_items: usize) -> SortInstance {
-		SortInstance::new(self, num_items)
-	}   
-
+impl Sort {	
 	pub fn color(&self) -> Color {
 		match self {
 			Sort::Bogo => Color::LightRed,
-			Sort::Bubble => todo!(),
+			Sort::Bubble => Color::Cyan,
 			Sort::Insertion => todo!(),
 			Sort::Merge => todo!(),
 			Sort::Quick => todo!(),
 		}
+	}
+}
+
+impl Display for Sort {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		write!(f, "{} Sort", match self {
+			Sort::Bogo => "Bogo",
+			Sort::Bubble => "Bubble",
+			Sort::Insertion => "Insertion",
+			Sort::Merge => "Merge",
+			Sort::Quick => "Quick",
+		})
 	}
 }
