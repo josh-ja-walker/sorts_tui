@@ -1,62 +1,84 @@
-use sort::Sort;
-use std::{io, io::Write, str::FromStr};
+use console::Term;
+use dialoguer::{Input, Select};
+
+use tui::{backend::CrosstermBackend, Terminal};
+use crossterm::{event::{DisableMouseCapture, EnableMouseCapture}, terminal::{EnterAlternateScreen, LeaveAlternateScreen}};
+
+use strum::IntoEnumIterator;
+
+use std::{fmt::Display, io};
+
 mod sort;
+mod sort_instance;
 
-const MAX: u32 = 100;
+use sort::Sort;
+use sort_instance::SortInstance;
 
-fn main() {    
+const MIN: usize = 2;
+const MAX: usize = 100;
+
+
+/* Format select options */
+fn format_items<T>(options: Vec<T>) -> Vec<String> where T: Display {
+    options.iter()
+        .map(|option| format!("\u{2022} {option}"))
+        .collect()
+}
+
+fn main() -> io::Result<()> {    
+	let sorts: Vec<Sort> = Sort::iter().collect();
+
 	loop {
-		print!("{esc}[2J{esc}[1;1H", esc = 27 as char); // Clear console
-		println!("\n-----------Sorting-Algorithms-----------");
-		println!(" - (1) Bogo Sort");
-		println!(" - (2) Bubble Sort");
-		println!(" - (3) Insertion Sort");
-		println!(" - (4) Merge Sort");
-		println!(" - (5) Quick Sort");
-		
-		let sort_num: u8 = match parse_read::<u8>("Select a sorting algorithm: ") {
-			Ok(val @ 1..=4) => val,
-			_ => continue,
-		};
-		
-		let num_req: String = format!("Enter the number of items to sort [2 - {MAX}]: ");
-		let num_items: u32 = match parse_read::<u32>(&num_req) {
-			Ok(val @ 2..=MAX) => val,
-			_ => continue,
-		};
-		
-		choose_sort(sort_num).perform(num_items);
+		let sort_choice = Select::new()
+			.with_prompt("Sorting Algorithms")
+			.items(&format_items(
+				sorts.iter()
+					.map(|s| format!("{s} Sort"))
+					.collect::<Vec<String>>()))
+			.report(false)
+			.default(0)
+			.interact()
+			.unwrap();
 
-		read("Press enter to continue").unwrap();
+		let num_items = Input::<usize>::new()
+			.with_prompt(format!("Enter number of items [{MIN} - {MAX}]"))
+			.validate_with(|n: &usize| (MIN..MAX).contains(n)
+				.then_some(())
+				.ok_or(format!("must be between {MIN} and {MAX}")))
+			.interact()
+			.unwrap();
+
+		let chosen_sort: Sort = sorts[sort_choice];
+		println!("Took {} iterations", run(chosen_sort.perform_with(num_items))?);
+
+		Term::stdout().read_line()?;
+		Term::stdout().clear_screen()?;
 	}
 }
 
-fn choose_sort(sort_num: u8) -> Sort {
-	match sort_num {
-		1 => Sort::Bogo,
-		2 => Sort::Bubble,
-		3 => Sort::Insertion,
-		4 => Sort::Merge,
-		5 => Sort::Quick,
-		_ => panic!("Should have continued"),
-	}
-}
+/* Render and run  */
+fn run(sort_instance: SortInstance) -> io::Result<u64> {
+    /* Setup terminal */
+    crossterm::terminal::enable_raw_mode()?;
 
-fn parse_read<T : FromStr>(request: &str) -> io::Result<T> {
-	match read(request)?.trim().parse::<T>() {
-		Ok(parsed) => Ok(parsed),
-		Err(_) => Err(io::Error::other("could not parse"))
-	}
-}
-
-fn read(request: &str) -> io::Result<String> {
-	// Output a request for input to the console
-	print!("{}", request); 
-	io::stdout().flush()?;
-
-	// Read input from console and save as string
-	let mut input = String::new();
-	io::stdin().read_line(&mut input)?; 
+	let mut stdout = io::stdout();
+	crossterm::execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
 	
-	Ok(input) // Return result containing read string
+    let backend = CrosstermBackend::new(stdout);
+    let mut terminal = Terminal::new(backend)?;
+
+	/* Run sorting algorithm */
+	let iterations = sort_instance.run(&mut terminal)?;
+
+    /* Restore terminal */
+    crossterm::terminal::disable_raw_mode()?;
+    crossterm::execute!(
+        terminal.backend_mut(),
+        LeaveAlternateScreen,
+        DisableMouseCapture
+    )?;
+
+    terminal.show_cursor()?;
+
+    Ok(iterations)
 }
