@@ -50,7 +50,9 @@ impl Terminal {
 
     /* Render the bar chart */
 	pub fn render(&mut self, sort: Sort, data: &Vec<u64>) -> Result<(), Error> {
-		let bar = |x: &u64| Bar::default().value(*x + 1).text_value(format!("{x:02}"));
+		let bar = |x: &u64| Bar::default()
+			.value(*x + 2).text_value(format!("{x:02}"));
+
 		let bar_group = BarGroup::default()
 			.bars(&data.iter().map(bar).collect::<Vec<Bar>>());
 
