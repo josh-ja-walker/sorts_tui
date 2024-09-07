@@ -40,18 +40,22 @@ impl Sort {
 		let (r, g, b) = self.rgb();
 		tui_color::Rgb(r, g, b)
 	}
-}
 
-impl Display for Sort {
-	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		let text = format!("{} Sort", match self {
+	pub fn uncolored_string(&self) -> String {
+		format!("{} Sort", match self {
 			Sort::Bogo => "Bogo",
 			Sort::Bubble => "Bubble",
 			Sort::Insertion => "Insertion",
 			Sort::Merge => "Merge",
 			Sort::Quick => "Quick",
-		}).with(self.crossterm_color());
+		})
+	}
+}
 
-		write!(f, "{text}")
+
+
+impl Display for Sort {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		write!(f, "{}", self.uncolored_string().with(self.crossterm_color()))
 	}
 }

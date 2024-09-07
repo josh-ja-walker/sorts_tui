@@ -1,6 +1,6 @@
 use std::{io, time::Duration};
 
-use tui::{backend::CrosstermBackend, layout::Alignment, style::Style, widgets::{BarChart, Block, Borders}};
+use tui::{backend::CrosstermBackend, style::Style, widgets::{BarChart, Block, Borders}};
 use crossterm::{event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode}, terminal::{EnterAlternateScreen, LeaveAlternateScreen}};
 
 use crate::{sort::Sort, Error};
@@ -59,14 +59,13 @@ impl Terminal {
     /* Render the bar chart */
 	pub fn render(&mut self, sort: Sort, data: Vec<(&str, u64)>) -> Result<(), Error> {
         let block = Block::default()
-            .title(sort.to_string())
-            .title_alignment(Alignment::Left)
+            .title(sort.uncolored_string())
             .borders(Borders::ALL);
 
 		let (w, g) = Self::bar_settings(data.len())?;
 
 		let bar_chart = BarChart::default()
-            .bar_style(Style::default().fg(sort.tui_color()))
+			.bar_style(Style::default().fg(sort.tui_color()))
 			.value_style(Style::default().bg(sort.tui_color()))
             .block(block)
             .bar_width(w)
