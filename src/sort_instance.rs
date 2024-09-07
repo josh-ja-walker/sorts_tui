@@ -29,15 +29,14 @@ impl Count {
 #[derive(Display)]
 enum CountType {
     Shuffles,
-    Comparisons,
-    Iterations,
+    Comparisons
 }
 
 impl Display for Count {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{} {}",
             self.count,
-            self.count.to_string().to_lowercase()
+            self.count_type.to_string().to_lowercase()
         )
     }
 }
@@ -68,11 +67,7 @@ impl SortInstance {
     /* Render bar chart in terminal */
     fn render(&mut self) -> Result<(), Error> {
         let sort = self.sort.clone();
-        let data = self.data.iter()
-            .map(|x| ("", *x))
-            .collect();
-        
-        self.terminal.render(sort, data)
+        self.terminal.render(sort, &self.data)
     }
 
     /* Run the sorting algorithm, rendering to terminal */
@@ -87,7 +82,9 @@ impl SortInstance {
             Sort::Quick => todo!(),
         }?;
 
-        self.terminal.destroy()?;
+        Terminal::sleep(Duration::from_millis(5000))?;
+
+        self.terminal.restore()?;
 
         Ok(count)
 	}

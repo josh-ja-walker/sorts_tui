@@ -1,9 +1,7 @@
 use std::fmt::{self, Display};
 
+use ratatui::{style::Color, text::Span};
 use strum_macros::EnumIter;
-
-use crossterm::style::{Color as crossterm_color, Stylize};
-use tui::style::Color as tui_color;
 
 use crate::sort_instance::SortInstance;
 
@@ -30,18 +28,13 @@ impl Sort {
 			Sort::Quick => (240, 128, 128),
 		}		
 	}
-	
-	pub fn crossterm_color(&self) -> crossterm_color {
+
+	pub fn color(&self) -> Color {
 		let (r, g, b) = self.rgb();
-		crossterm_color::Rgb { r, g, b }
-	}
-	
-	pub fn tui_color(&self) -> tui_color {
-		let (r, g, b) = self.rgb();
-		tui_color::Rgb(r, g, b)
+		Color::Rgb(r, g, b)
 	}
 
-	pub fn uncolored_string(&self) -> String {
+	fn uncolored_string(&self) -> String {
 		format!("{} Sort", match self {
 			Sort::Bogo => "Bogo",
 			Sort::Bubble => "Bubble",
@@ -52,10 +45,8 @@ impl Sort {
 	}
 }
 
-
-
 impl Display for Sort {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		write!(f, "{}", self.uncolored_string().with(self.crossterm_color()))
+		write!(f, "{}", Span::styled(self.uncolored_string(), self.color()))
 	}
 }
