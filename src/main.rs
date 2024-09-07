@@ -65,7 +65,8 @@ fn main() -> Result<(), Error> {
 		};
 
 		match action {
-			Ok(()) | Err(Error::Interrupted) => (),
+			Ok(()) => (),
+			Err(Error::Interrupted) => { Term::stdout().clear_screen()?; () },
 			err => err? 
 		}
 	}
