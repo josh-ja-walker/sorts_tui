@@ -1,19 +1,12 @@
-use std::{fmt::{self, Display}, io::{self, Stdout}, time::Duration};
+use std::{fmt::{self, Display}, time::Duration};
 
 use rand::{seq::SliceRandom, thread_rng};
 use strum_macros::Display;
-use tui::{
-    Terminal,
-    backend::CrosstermBackend, 
-    widgets::{BarChart, Block, Borders}, 
-    style::{Color, Style},
-}; 
 
-use crate::{Error, sort::Sort, terminal_sleep};
+use crate::{sort::Sort, terminal::Terminal, Error};
 
 const TICK: u64 = 100;
-const BAR_GAP: u16 = 1;
-const BAR_WIDTH: u16 = 4;
+
 
 pub struct Count {
     count: usize,
@@ -36,8 +29,8 @@ impl Count {
 #[derive(Display)]
 enum CountType {
     Shuffles,
-    Iterations,
     Comparisons,
+    Iterations,
 }
 
 impl Display for Count {
@@ -57,56 +50,47 @@ fn gen_data(num_items: usize) -> Vec<u64> {
 }
 
 
-pub struct SortInstance<'a> {
+pub struct SortInstance {
 	sort: Sort,
  	data: Vec<u64>,
-    terminal: &'a mut Terminal<CrosstermBackend<Stdout>>,
+    terminal: Terminal,
 }
 
-impl<'a> SortInstance<'a> {
-    pub fn new(sort: Sort, num_items: usize, terminal: &'a mut Terminal<CrosstermBackend<Stdout>>) -> SortInstance<'a> {
+impl SortInstance {
+    pub fn new(sort: Sort, num_items: usize) -> SortInstance {
         SortInstance {
             sort,
-            terminal,
+            terminal: Terminal::new().unwrap(),
             data: gen_data(num_items),
         }
     }
-    	
+
+    /* Render bar chart in terminal */
+    fn render(&mut self) -> Result<(), Error> {
+        let sort = self.sort.clone();
+        let data = self.data.iter()
+            .map(|x| ("", *x))
+            .collect();
+        
+        self.terminal.render(sort, data)
+    }
+
     /* Run the sorting algorithm, rendering to terminal */
     pub fn run(mut self) -> Result<Count, Error> {
         self.render()?;
-
-        match self.sort {
+        
+        let count = match self.sort {
             Sort::Bogo => self.bogosort(),
             Sort::Bubble => self.bubble_sort(),
             Sort::Insertion => todo!(),
             Sort::Merge => todo!(),
             Sort::Quick => todo!(),
-        }
+        }?;
+
+        self.terminal.destroy()?;
+
+        Ok(count)
 	}
-
-    /* Render bar chart to terminal */
-    fn render(&mut self) -> io::Result<()> {
-        let formatted_data: Vec<(&str, u64)> = self.data.iter()
-            .map(|&x| ("", x)).collect();
-        
-        let bar_chart = BarChart::default()
-            .block(Block::default()
-                .title(self.sort.to_string())
-                .borders(Borders::ALL))
-            .data(&formatted_data)
-            .bar_width(BAR_WIDTH)
-            .bar_gap(BAR_GAP)
-            .bar_style(Style::default().fg(self.sort.color()))
-            .value_style(Style::default().fg(Color::White).bg(self.sort.color()));
-            
-        self.terminal.draw(|f| {
-            let size = f.size();
-            f.render_widget(bar_chart, size);
-        })?;
-
-        Ok(())
-    }
 
     /* Check if data is sorted */
 	fn is_sorted(&self) -> bool {
@@ -120,7 +104,7 @@ impl<'a> SortInstance<'a> {
 
         loop {
             self.render()?;
-            terminal_sleep(Duration::from_millis(TICK))?;
+            Terminal::sleep(Duration::from_millis(TICK))?;
             
             if self.is_sorted() { break; }
             
@@ -145,7 +129,7 @@ impl<'a> SortInstance<'a> {
                     count.increment();
 
                     self.render()?;
-                    terminal_sleep(Duration::from_millis(TICK))?;
+                    Terminal::sleep(Duration::from_millis(TICK))?;
                     
                     swapped = true;
                 }
