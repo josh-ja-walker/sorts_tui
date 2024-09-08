@@ -1,12 +1,7 @@
 use std::time::Duration;
 
 use ratatui::{
-	crossterm::event::{self, Event, KeyCode, KeyEventKind}, 
-	layout::{Constraint, Layout}, 
-	style::Style, 
-	text::Line, 
-	DefaultTerminal,
-	widgets::{Bar, BarChart, BarGroup, Block, Borders, Padding}, 
+	crossterm::event::{self, Event, KeyCode, KeyEventKind}, layout::{Constraint, Layout}, style::{Style, Stylize}, text::Line, widgets::{Bar, BarChart, BarGroup, Block, Borders, Padding}, DefaultTerminal 
 };
 
 use crate::{sort_type::SortType, Error};
@@ -107,7 +102,7 @@ impl Terminal {
 			
 			/* Set up containing block */
 			let block = Block::default()
-				.title(Line::styled(sort.to_string(), sort.color()))
+				.title(Line::styled(sort.to_string(), sort.color()).bold())
 				.padding(Padding::new(HORIZ_PAD / 2, HORIZ_PAD / 2, 2, 0))
 				.borders(Borders::ALL);
 
