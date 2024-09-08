@@ -53,7 +53,7 @@ impl Terminal {
 		let mut bar_gap: u16 = BAR_GAP;
 		
 		loop {
-			let bar_width = (term_width - (bar_gap * (num_items - 1) as u16)) / num_items as u16;
+			let bar_width = (term_width - (bar_gap * (num_items) as u16)) / num_items as u16;
 			
 			if bar_width < 1 {
 				bar_gap = bar_gap.checked_sub(1).expect("Bar width could not be calculated");
@@ -65,9 +65,10 @@ impl Terminal {
 
     /* Render the bar chart */
 	pub fn render(&mut self, sort: Sort, data: &Vec<u64>) -> Result<(), Error> {
+		let pad_lr: u16 = 2;
 		let block = Block::default()
 			.title(sort.to_string())
-			.padding(Padding::new(2, 2, 1, 0))
+			.padding(Padding::new(pad_lr, pad_lr, 1, 0))
 			.borders(Borders::ALL);
 
 		self.term.draw(|frame| {
@@ -77,7 +78,7 @@ impl Terminal {
 				.constraints([Constraint::Min(0)])
 				.areas(frame.area());
 		
-			let (bar_width, bar_gap) = Self::calc_bar_sizes(area.width, data.len()).unwrap();
+			let (bar_width, bar_gap) = Self::calc_bar_sizes(area.width - (2 * pad_lr), data.len()).unwrap();
 			let bar_chart = BarChart::default()
 				.block(block)
 				.bar_style(Style::default().fg(sort.color()))

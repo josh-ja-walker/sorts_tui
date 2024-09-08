@@ -14,7 +14,7 @@ use sort_instance::SortInstance;
 
 const MIN: usize = 2;
 const DEFAULT: usize = 50;
-const MAX: usize = 175;
+const MAX: usize = 150;
 
 
 #[derive(Debug)]
