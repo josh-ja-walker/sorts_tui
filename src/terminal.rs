@@ -4,7 +4,7 @@ use ratatui::{
 	crossterm::event::{self, Event, KeyCode, KeyEventKind}, layout::{Constraint, Layout}, style::Style, text::Line, widgets::{Bar, BarChart, BarGroup, Block, Borders, Padding}, DefaultTerminal 
 };
 
-use crate::{sort::Sort, Error};
+use crate::{sort_type::SortType, Error};
 
 const BAR_GAP: u16 = 1;
 
@@ -67,7 +67,7 @@ impl Terminal {
 	}
 
     /* Render the bar chart */
-	pub fn render(&mut self, sort: Sort, data: &Vec<u64>) -> Result<(), Error> {
+	pub fn render(&mut self, sort: SortType, data: &Vec<u64>) -> Result<(), Error> {
 		let pad_lr: u16 = 2;
 		let block = Block::default()
 			.title(sort.to_string())

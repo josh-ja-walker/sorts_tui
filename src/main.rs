@@ -5,12 +5,12 @@ use strum::IntoEnumIterator;
 
 use std::{fmt::{self, Display}, io::{self}};
 
+mod sort_type;
 mod sort;
-mod sort_instance;
 mod terminal;
 
+use sort_type::SortType;
 use sort::Sort;
-use sort_instance::SortInstance;
 
 const MIN: usize = 2;
 const DEFAULT: usize = 50;
@@ -83,10 +83,10 @@ fn format_items<T>(options: Vec<T>) -> Vec<String> where T: Display {
 
 /* Proxy to handle quit and interrupted errors */
 fn run_sort() -> Result<(), Error> {
-	let chosen_sort: Sort = choose_sort()?;
+	let chosen_sort: SortType = choose_sort()?;
 	let num_items = choose_num_items()?;
 
-	let sort_instance: SortInstance = chosen_sort.perform_with(num_items);
+	let sort_instance: Sort = chosen_sort.perform_with(num_items);
 	let count = sort_instance.run()?;
 
 	Term::stdout().write_line("Sorted")?;
@@ -104,8 +104,8 @@ fn edit_settings() -> Result<(), Error> {
 }
 
 /* Choose sort to run */
-fn choose_sort() -> Result<Sort, Error> {
-	let sorts: Vec<Sort> = Sort::iter().collect();
+fn choose_sort() -> Result<SortType, Error> {
+	let sorts: Vec<SortType> = SortType::iter().collect();
 
 	let index = Select::new()
 		.with_prompt("Which sorting algorithm")

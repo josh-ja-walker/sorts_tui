@@ -1,52 +1,142 @@
-use std::fmt::{self, Display};
+use std::{fmt::{self, Display}, time::Duration};
 
-use ratatui::{style::Color, text::Span};
-use strum_macros::EnumIter;
+use rand::{seq::SliceRandom, thread_rng};
+use strum_macros::Display;
 
-use crate::sort_instance::SortInstance;
+use crate::{sort_type::SortType, terminal::Terminal, Error};
 
-#[derive(Clone, Copy, EnumIter)]
-pub enum Sort {
-	Bogo,
-	Bubble,
-	Insertion,
-	Merge,
-	Quick
+const TICK: u64 = 100;
+
+
+pub struct Count {
+    count: usize,
+    #[allow(dead_code)] count_type: CountType,
 }
 
-impl Sort {	
-	pub fn perform_with(self, num_items: usize) -> SortInstance {
-		SortInstance::new(self, num_items)
-	}
-	
-	fn rgb(&self) -> (u8, u8, u8) {
-		match self {
-			Sort::Bogo => (219, 77, 59),
-			Sort::Bubble => (59, 126, 219),
-			Sort::Insertion => (219, 124, 59),
-			Sort::Merge => (50, 150, 52),
-			Sort::Quick => (240, 128, 128),
-		}		
-	}
+impl Count {
+    fn new(count_type: CountType) -> Count {
+        Count {
+            count: 0,
+            count_type
+        }
+    } 
 
-	pub fn color(&self) -> Color {
-		let (r, g, b) = self.rgb();
-		Color::Rgb(r, g, b)
-	}
-
-	fn uncolored_string(&self) -> String {
-		format!("{} Sort", match self {
-			Sort::Bogo => "Bogo",
-			Sort::Bubble => "Bubble",
-			Sort::Insertion => "Insertion",
-			Sort::Merge => "Merge",
-			Sort::Quick => "Quick",
-		})
-	}
+    fn increment(&mut self) {
+        self.count += 1
+    }
 }
 
-impl Display for Sort {
-	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		write!(f, "{}", Span::styled(self.uncolored_string(), self.color()))
+#[derive(Display)]
+enum CountType {
+    Shuffles,
+    Comparisons
+}
+
+impl Display for Count {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{} {}",
+            self.count,
+            self.count_type.to_string().to_lowercase()
+        )
+    }
+}
+
+
+fn gen_data(num_items: usize) -> Vec<u64> {
+    let mut data: Vec<u64> = (1..(num_items as u64 + 1)).collect();
+    data.shuffle(&mut thread_rng());
+    return data;
+}
+
+
+pub struct Sort {
+	sort: SortType,
+ 	data: Vec<u64>,
+    terminal: Terminal,
+}
+
+impl Sort {
+    pub fn new(sort: SortType, num_items: usize) -> Sort {
+        Sort {
+            sort,
+            terminal: Terminal::new().unwrap(),
+            data: gen_data(num_items),
+        }
+    }
+
+    /* Render bar chart in terminal */
+    fn render(&mut self) -> Result<(), Error> {
+        let sort = self.sort.clone();
+        self.terminal.render(sort, &self.data)
+    }
+
+    /* Run the sorting algorithm, rendering to terminal */
+    pub fn run(mut self) -> Result<Count, Error> {
+        self.render()?;
+        
+        let count = match self.sort {
+            SortType::Bogo => self.bogosort(),
+            SortType::Bubble => self.bubble_sort(),
+            SortType::Insertion => todo!(),
+            SortType::Merge => todo!(),
+            SortType::Quick => todo!(),
+        }?;
+
+        Terminal::sleep(Duration::from_millis(5000))?;
+        self.terminal.restore()?;
+
+        Ok(count)
 	}
+
+    /* Check if data is sorted */
+	fn is_sorted(&self) -> bool {
+        self.data.windows(2).all(|w| w[0] <= w[1])
+	}
+    
+    /* Perform bogosort */
+    fn bogosort(&mut self) -> Result<Count, Error> {
+        let mut rng = rand::thread_rng();
+        let mut count = Count::new(CountType::Shuffles);
+
+        loop {
+            if self.is_sorted() { break; }
+            
+            self.data.shuffle(&mut rng);
+            count.increment();
+            
+            self.render()?;
+            Terminal::sleep(Duration::from_millis(TICK))?;
+        }
+
+        Ok(count)
+    }
+
+    /* Perform bubble sort */
+    fn bubble_sort(&mut self) -> Result<Count, Error> {
+        let mut swapped: bool;
+        let mut count = Count::new(CountType::Comparisons);
+
+        for i in 0 .. self.data.len() - 1 {
+            swapped = false;
+
+            for j in 0 .. self.data.len() - i - 1 {
+                if self.data[j] > self.data[j + 1] {
+                    self.data.swap(j, j + 1);
+                    count.increment();
+
+                    self.render()?;
+                    Terminal::sleep(Duration::from_millis(TICK))?;
+                    
+                    swapped = true;
+                }
+            }
+    
+            if !swapped {
+                break;
+            }
+        }
+
+        Ok(count)
+    }
+
 }
