@@ -1,11 +1,7 @@
 use std::time::Duration;
 
 use ratatui::{
-	DefaultTerminal,
-	layout::Size, 
-	style::Style, 
-	crossterm::event::{self, Event, KeyCode, KeyEventKind}, 
-	widgets::{Bar, BarChart, BarGroup, Block, Borders}, 
+	crossterm::event::{self, Event, KeyCode, KeyEventKind}, layout::{Constraint, Layout}, style::Style, widgets::{Bar, BarChart, BarGroup, Block, Borders, Padding}, DefaultTerminal 
 };
 
 use crate::{sort::Sort, Error};
@@ -53,13 +49,12 @@ impl Terminal {
 	}
 
 	/* Calculate width and gap of bars */
-	fn calc_bar_sizes(&self, num_items: usize) -> Result<(u16, u16), Error> {
-		let Size { width: term_width, .. } = self.term.size()?;
-		
+	fn calc_bar_sizes(term_width: u16, num_items: usize) -> Result<(u16, u16), Error> {
 		let mut bar_gap: u16 = BAR_GAP;
 		
 		loop {
 			let bar_width = (term_width - (bar_gap * (num_items - 1) as u16)) / num_items as u16;
+			
 			if bar_width < 1 {
 				bar_gap = bar_gap.checked_sub(1).expect("Bar width could not be calculated");
 			} else {
@@ -68,25 +63,30 @@ impl Terminal {
 		}
 	}
 
-
     /* Render the bar chart */
 	pub fn render(&mut self, sort: Sort, data: &Vec<u64>) -> Result<(), Error> {
-		let (bar_width, bar_gap) = self.calc_bar_sizes(data.len())?;
+		let block = Block::default()
+			.title(sort.to_string())
+			.padding(Padding::new(2, 2, 1, 0))
+			.borders(Borders::ALL);
 
-        let block = Block::default()
-            .title(sort.to_string())
-            .borders(Borders::ALL);
-
-		let bar_chart = BarChart::default()
-			.bar_style(Style::default().fg(sort.color()))
-			.value_style(Style::default())
-            .block(block)
-            .bar_width(bar_width)
-            .bar_gap(bar_gap)
-            .data(build_bars(bar_width, data));
-			
 		self.term.draw(|frame| {
-			frame.render_widget(bar_chart, frame.area());
+			let [area] = Layout::default()
+				.horizontal_margin(10)
+				.vertical_margin(5)
+				.constraints([Constraint::Min(0)])
+				.areas(frame.area());
+		
+			let (bar_width, bar_gap) = Self::calc_bar_sizes(area.width, data.len()).unwrap();
+			let bar_chart = BarChart::default()
+				.block(block)
+				.bar_style(Style::default().fg(sort.color()))
+				.value_style(Style::default())
+				.bar_width(bar_width)
+				.bar_gap(bar_gap)
+				.data(build_bars(bar_width, data));
+
+			frame.render_widget(bar_chart, area);
 		})?;
 
 		Ok(())
