@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use ratatui::{
-	crossterm::event::{self, Event, KeyCode, KeyEventKind}, layout::{Constraint, Layout}, style::Style, widgets::{Bar, BarChart, BarGroup, Block, Borders, Padding}, DefaultTerminal 
+	crossterm::event::{self, Event, KeyCode, KeyEventKind}, layout::{Constraint, Layout}, style::Style, text::Line, widgets::{Bar, BarChart, BarGroup, Block, Borders, Padding}, DefaultTerminal 
 };
 
 use crate::{sort::Sort, Error};
@@ -11,10 +11,10 @@ const BAR_GAP: u16 = 1;
 
 /* Build group of bars from the data */
 fn build_bars(bar_width: u16, data: &Vec<u64>) -> BarGroup {
-	let val_str = |x: &u64| {
-		let max = data.len() + 1;
-		let txt_width = max.ilog10() + 1;
+	let max = data.len() + 1;
+	let txt_width = max.ilog10() + 1;
 
+	let format_val = |x: &u64| {
 		if txt_width > bar_width as u32 {
 			String::from("")
 		} else {
@@ -24,7 +24,10 @@ fn build_bars(bar_width: u16, data: &Vec<u64>) -> BarGroup {
 	
 	BarGroup::default().bars(
 		&data.iter()
-			.map(|x| Bar::default().value(*x + 2).text_value(val_str(x)))
+			.map(|x| Bar::default()
+				.value(*x)
+				.text_value(String::from(""))
+				.label(Line::from(format_val(x))))
 			.collect::<Vec<Bar>>())
 }
 
