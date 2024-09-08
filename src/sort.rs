@@ -42,8 +42,8 @@ impl Display for Count {
 }
 
 
-fn gen_data(num_items: usize) -> Vec<u64> {
-    let mut data: Vec<u64> = (1..(num_items as u64 + 1)).collect();
+fn gen_data(quantity: usize) -> Vec<u64> {
+    let mut data: Vec<u64> = (1..(quantity as u64 + 1)).collect();
     data.shuffle(&mut thread_rng());
     return data;
 }
@@ -56,11 +56,11 @@ pub struct Sort {
 }
 
 impl Sort {
-    pub fn new(sort: SortType, num_items: usize) -> Sort {
+    pub fn new(sort: SortType, quantity: usize) -> Sort {
         Sort {
             sort,
             terminal: Terminal::new().unwrap(),
-            data: gen_data(num_items),
+            data: gen_data(quantity),
         }
     }
 

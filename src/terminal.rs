@@ -42,18 +42,18 @@ fn build_bars(bar_width: u16, data: &Vec<u64>) -> BarGroup {
 }
 
 /* Calculate width and gap of bars */
-fn calc_bar_sizes(term_width: u16, num_items: usize) -> (u16, u16) {
+fn calc_bar_sizes(term_width: u16, quantity: usize) -> (u16, u16) {
 	let usable_term_width = term_width - HORIZ_PAD - CHART_PAD;
 	let mut bar_gap: u16 = MAX_BAR_GAP;
 	
 	loop {
 		/* Width of all gaps */
-		let total_gap_width: u16 = bar_gap * (num_items - 1) as u16;
+		let total_gap_width: u16 = bar_gap * (quantity - 1) as u16;
 
 		/* If terminal width - total gaps > 0 */
 		if let Some(all_bars_width) = usable_term_width.checked_sub(total_gap_width) {
 			/* Calculate individual bar width */
-			let bar_width: f32 = all_bars_width as f32 / (num_items as f32);
+			let bar_width: f32 = all_bars_width as f32 / (quantity as f32);
 			
 			/* If bar width is valid, clamp and return */
 			if bar_width >= 1.0 {

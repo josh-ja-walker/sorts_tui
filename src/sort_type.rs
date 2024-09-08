@@ -15,8 +15,8 @@ pub enum SortType {
 }
 
 impl SortType {	
-	pub fn perform_with(self, num_items: usize) -> Sort {
-		Sort::new(self, num_items)
+	pub fn perform_with(self, quantity: usize) -> Sort {
+		Sort::new(self, quantity)
 	}
 	
 	fn rgb(&self) -> (u8, u8, u8) {

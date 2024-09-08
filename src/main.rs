@@ -12,9 +12,9 @@ mod terminal;
 use sort_type::SortType;
 use sort::Sort;
 
-const MIN: usize = 2;
-const DEFAULT: usize = 50;
-const MAX: usize = 150;
+const MIN_QUANTITY: usize = 2;
+const DEFAULT_QUANTITY: usize = 50;
+const MAX_QUANTITY: usize = 150;
 
 
 #[derive(Debug)]
@@ -84,9 +84,9 @@ fn format_items<T>(options: Vec<T>) -> Vec<String> where T: Display {
 /* Proxy to handle quit and interrupted errors */
 fn run_sort() -> Result<(), Error> {
 	let chosen_sort: SortType = choose_sort()?;
-	let num_items = choose_num_items()?;
+	let quantity = choose_quantity()?;
 
-	let sort_instance: Sort = chosen_sort.perform_with(num_items);
+	let sort_instance: Sort = chosen_sort.perform_with(quantity);
 	let count = sort_instance.run()?;
 
 	Term::stdout().write_line("Sorted")?;
@@ -117,14 +117,14 @@ fn choose_sort() -> Result<SortType, Error> {
 }
 
 /* Input number of items */
-fn choose_num_items() -> Result<usize, Error> {
-	let num_items = Input::<usize>::new()
+fn choose_quantity() -> Result<usize, Error> {
+	let quantity = Input::<usize>::new()
 		.with_prompt("Number of items to sort")
-		.validate_with(|n: &usize| (MIN..MAX + 1).contains(n)
+		.validate_with(|n: &usize| (MIN_QUANTITY..MAX_QUANTITY + 1).contains(n)
 			.then_some(())
-			.ok_or(format!("must be between {} and {}", MIN, MAX)))
-		.default(DEFAULT)
+			.ok_or(format!("must be between {} and {}", MIN_QUANTITY, MAX_QUANTITY)))
+		.default(DEFAULT_QUANTITY)
 		.interact()?;
 
-	Ok(num_items)
+	Ok(quantity)
 }
