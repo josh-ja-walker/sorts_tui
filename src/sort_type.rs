@@ -1,11 +1,10 @@
 use std::fmt::{self, Display};
 
+use clap::ValueEnum;
 use ratatui::{style::Color, text::Span};
 use strum_macros::EnumIter;
 
-use crate::sort::Sort;
-
-#[derive(Clone, Copy, EnumIter)]
+#[derive(ValueEnum, EnumIter, Debug, Clone, Copy)]
 pub enum SortType {
 	Bogo,
 	Bubble,
@@ -15,10 +14,6 @@ pub enum SortType {
 }
 
 impl SortType {	
-	pub fn perform_with(self, num_items: usize) -> Sort {
-		Sort::new(self, num_items)
-	}
-	
 	fn rgb(&self) -> (u8, u8, u8) {
 		match self {
 			SortType::Bogo => (219, 77, 59),

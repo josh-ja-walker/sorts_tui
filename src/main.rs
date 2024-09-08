@@ -1,7 +1,6 @@
+use clap::{value_parser, Parser};
 use console::Term;
-use dialoguer::{Input, Select};
-
-use strum::IntoEnumIterator;
+use sort::Sort;
 
 use std::{fmt::{self, Display}, io::{self}};
 
@@ -10,18 +9,19 @@ mod sort;
 mod terminal;
 
 use sort_type::SortType;
-use sort::Sort;
 
-const MIN: usize = 2;
-const DEFAULT: usize = 50;
-const MAX: usize = 150;
+
+const DEFAULT_QUANTITY: u64 = 50;
+const MIN_QUANTITY: u64 = 2;
+const MAX_QUANTITY: u64 = 150;
+
+const DEFAULT_TICK: u64 = 100;
 
 
 #[derive(Debug)]
 enum Error {
 	Interrupted,
 	IOError(io::Error),
-	DialoguerError(dialoguer::Error)
 }
 
 impl From<io::Error> for Error {
@@ -30,101 +30,41 @@ impl From<io::Error> for Error {
 	}
 }
 
-impl From<dialoguer::Error> for Error {
-	fn from(error: dialoguer::Error) -> Self {
-		Error::DialoguerError(error)
-	}
-}
-
 impl Display for Error {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		write!(f, "{}", match self {
 				Error::Interrupted => String::from("interrupted"),
 				Error::IOError(io_err) => io_err.to_string(),
-				Error::DialoguerError(dialoguer_err) => dialoguer_err.to_string(),
 			}
 		)
 	}
 }
 
 
-fn main() -> Result<(), Error> {    
-	loop {
-		let choice = Select::new()
-			.with_prompt("Sorts TUI")
-			.items(&format_items(vec!["Start", "Settings", "Quit"]))
-			.default(0)
-			.report(false)
-			.interact()?;
-
-		let action = match choice {
-			0 => run_sort(),
-			1 => edit_settings(),
-			2 => { break; },
-			_ => unreachable!()
-		};
-
-		match action {
-			Ok(()) => (),
-			Err(Error::Interrupted) => { Term::stdout().clear_screen()?; () },
-			err => err? 
-		}
-	}
-
-	Ok(())
-}
-
-/* Format select options */
-fn format_items<T>(options: Vec<T>) -> Vec<String> where T: Display {
-    options.iter()
-        .map(|option| format!("\u{2022} {option}"))
-        .collect()
-}
-
-/* Proxy to handle quit and interrupted errors */
-fn run_sort() -> Result<(), Error> {
-	let chosen_sort: SortType = choose_sort()?;
-	let num_items = choose_num_items()?;
-
-	let sort_instance: Sort = chosen_sort.perform_with(num_items);
-	let count = sort_instance.run()?;
-
-	Term::stdout().write_line("Sorted")?;
-	Term::stdout().write_line(&format!("{} performed", count))?;
+/// Sort terminal visualizer
+#[derive(Parser, Debug)]
+#[command(version, about, long_about = None)]
+struct Args {
+    /// Sort algorithm to use
+    // #[arg(short, long = "sort")]
+    sort_type: SortType,
 	
-	Term::stdout().read_line()?;
-	Term::stdout().clear_screen()?;
+    /// Number of items to sort (2 - 150)
+    #[arg(short = 'n', long, 
+		default_value_t = DEFAULT_QUANTITY, 
+		value_parser = value_parser!(u64).range(MIN_QUANTITY..MAX_QUANTITY))]
+	quantity: u64,
 
+	/// How often interface reloads (in milliseconds)
+    #[arg(short, long, default_value_t = DEFAULT_TICK)]
+    tick_rate: u64,
+}
+
+fn main() -> Result<(), Error> {    
+	let args = Args::parse();
+
+	let count = Sort::with_args(args).run()?;
+	Term::stdout().write_line(&format!("Sorted: {} performed", count))?;
+	
 	Ok(())
-}
-
-/* Edit running settings */
-fn edit_settings() -> Result<(), Error> {
-	todo!()
-}
-
-/* Choose sort to run */
-fn choose_sort() -> Result<SortType, Error> {
-	let sorts: Vec<SortType> = SortType::iter().collect();
-
-	let index = Select::new()
-		.with_prompt("Which sorting algorithm")
-		.items(&format_items(sorts.clone()))
-		.default(0)
-		.interact()?;
-
-	Ok(sorts[index])
-}
-
-/* Input number of items */
-fn choose_num_items() -> Result<usize, Error> {
-	let num_items = Input::<usize>::new()
-		.with_prompt("Number of items to sort")
-		.validate_with(|n: &usize| (MIN..MAX + 1).contains(n)
-			.then_some(())
-			.ok_or(format!("must be between {} and {}", MIN, MAX)))
-		.default(DEFAULT)
-		.interact()?;
-
-	Ok(num_items)
 }

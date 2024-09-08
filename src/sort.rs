@@ -3,9 +3,8 @@ use std::{fmt::{self, Display}, time::Duration};
 use rand::{seq::SliceRandom, thread_rng};
 use strum_macros::Display;
 
-use crate::{sort_type::SortType, terminal::Terminal, Error};
+use crate::{sort_type::SortType, terminal::Terminal, Args, Error};
 
-const TICK: u64 = 100;
 
 
 pub struct Count {
@@ -42,8 +41,8 @@ impl Display for Count {
 }
 
 
-fn gen_data(num_items: usize) -> Vec<u64> {
-    let mut data: Vec<u64> = (1..(num_items as u64 + 1)).collect();
+fn gen_data(quantity: usize) -> Vec<u64> {
+    let mut data: Vec<u64> = (1..(quantity as u64 + 1)).collect();
     data.shuffle(&mut thread_rng());
     return data;
 }
@@ -51,17 +50,23 @@ fn gen_data(num_items: usize) -> Vec<u64> {
 
 pub struct Sort {
 	sort: SortType,
+    tick_rate: u64,
  	data: Vec<u64>,
     terminal: Terminal,
 }
 
 impl Sort {
-    pub fn new(sort: SortType, num_items: usize) -> Sort {
+    pub fn new(sort: SortType, quantity: usize, tick_rate: u64) -> Sort {
         Sort {
             sort,
+            tick_rate,
             terminal: Terminal::new().unwrap(),
-            data: gen_data(num_items),
+            data: gen_data(quantity),
         }
+    }
+
+    pub fn with_args(args: Args) -> Sort {
+        Sort::new(args.sort_type, (args.quantity as u64).try_into().unwrap(), args.tick_rate)
     }
 
     /* Render bar chart in terminal */
@@ -70,9 +75,21 @@ impl Sort {
         self.terminal.render(sort, &self.data)
     }
 
+    /* Wait another tick */
+    fn sleep(&self) -> Result<(), Error> {
+        Terminal::sleep(Duration::from_millis(self.tick_rate))
+    }
+
+    /* Re-render chart and wait tick */
+    fn reload(&mut self) -> Result<(), Error> {
+        self.render()?;
+        self.sleep()
+    }
+
+
     /* Run the sorting algorithm, rendering to terminal */
     pub fn run(mut self) -> Result<Count, Error> {
-        self.render()?;
+        self.reload()?;
         
         let count = match self.sort {
             SortType::Bogo => self.bogosort(),
@@ -104,8 +121,7 @@ impl Sort {
             self.data.shuffle(&mut rng);
             count.increment();
             
-            self.render()?;
-            Terminal::sleep(Duration::from_millis(TICK))?;
+            self.reload()?;
         }
 
         Ok(count)
@@ -124,8 +140,7 @@ impl Sort {
                     self.data.swap(j, j + 1);
                     count.increment();
 
-                    self.render()?;
-                    Terminal::sleep(Duration::from_millis(TICK))?;
+                    self.reload()?;
                     
                     swapped = true;
                 }
