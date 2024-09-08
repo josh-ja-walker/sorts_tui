@@ -68,20 +68,29 @@ impl Terminal {
 
     /* Render the bar chart */
 	pub fn render(&mut self, sort: SortType, data: &Vec<u64>) -> Result<(), Error> {
-		let pad_lr: u16 = 2;
-		let block = Block::default()
-			.title(sort.to_string())
-			.padding(Padding::new(pad_lr, pad_lr, 1, 0))
-			.borders(Borders::ALL);
-
 		self.term.draw(|frame| {
-			let [area] = Layout::default()
-				.horizontal_margin(10)
-				.vertical_margin(5)
-				.constraints([Constraint::Min(0)])
+			let horiz_pad: u16 = 4;
+
+			let (bar_width, bar_gap) = Self::calc_bar_sizes(
+				frame.area().width - horiz_pad, 
+				data.len()
+			).unwrap();
+			
+			/* Chart Width = n * (width + gap) + trailing gap */
+			let chart_width = ((bar_width + bar_gap) * data.len() as u16) + bar_gap;
+			
+			let [_, area, _] = Layout::horizontal([
+					Constraint::Min(0), 
+					Constraint::Max(chart_width + horiz_pad), 
+					Constraint::Min(0)
+				]).vertical_margin(5)
 				.areas(frame.area());
-		
-			let (bar_width, bar_gap) = Self::calc_bar_sizes(area.width - (2 * pad_lr), data.len()).unwrap();
+			
+			let block = Block::default()
+				.title(sort.to_string())
+				.padding(Padding::new(horiz_pad / 2, horiz_pad / 2, 2, 0))
+				.borders(Borders::ALL);
+
 			let bar_chart = BarChart::default()
 				.block(block)
 				.bar_style(Style::default().fg(sort.color()))
