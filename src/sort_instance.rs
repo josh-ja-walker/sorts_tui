@@ -83,7 +83,6 @@ impl SortInstance {
         }?;
 
         Terminal::sleep(Duration::from_millis(5000))?;
-
         self.terminal.restore()?;
 
         Ok(count)
@@ -100,13 +99,13 @@ impl SortInstance {
         let mut count = Count::new(CountType::Shuffles);
 
         loop {
-            self.render()?;
-            Terminal::sleep(Duration::from_millis(TICK))?;
-            
             if self.is_sorted() { break; }
             
             self.data.shuffle(&mut rng);
             count.increment();
+            
+            self.render()?;
+            Terminal::sleep(Duration::from_millis(TICK))?;
         }
 
         Ok(count)
