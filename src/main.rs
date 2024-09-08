@@ -11,8 +11,8 @@ mod terminal;
 use sort_type::SortType;
 
 
-const DEFAULT_QUANTITY: u64 = 50;
 const MIN_QUANTITY: u64 = 2;
+const DEFAULT_QUANTITY: u64 = 50;
 const MAX_QUANTITY: u64 = 150;
 
 const DEFAULT_TICK: u64 = 100;
