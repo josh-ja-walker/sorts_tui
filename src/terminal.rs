@@ -11,7 +11,7 @@ use ratatui::{
 
 use crate::{sort_type::SortType, Error};
 
-const MAX_BAR_GAP: u16 = 4;
+const MAX_BAR_GAP: u16 = 1;
 const BAR_WIDTH_MIN: u16 = 1;
 const BAR_WIDTH_MAX: u16 = 3;
 
