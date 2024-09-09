@@ -94,7 +94,7 @@ impl Display for Rate {
 			Rate::Quadratic => "n\u{00B2}",
 			Rate::LogN => "log n",
 			Rate::NLogN => "n log n",
-			Rate::NNFact => "n x n!",
+			Rate::NNFact => "n \u{00D7} n!",
 			Rate::Infinite => "\u{221E}",
 		})
 	}
