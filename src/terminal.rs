@@ -43,7 +43,7 @@ impl Terminal {
 impl Renderer for Terminal {
 	fn render(&mut self, snapshot: SortSnapshot) -> Result<(), Error> {
 		self.term.draw(|frame| {
-			render_graph(frame, &snapshot);
+			render_graph(frame, &snapshot).unwrap();
 			if snapshot.is_sorted() {
 				render_popup(frame, &snapshot);
 			}
@@ -70,12 +70,12 @@ impl Renderer for Terminal {
 
 
 /* Render bar graph */
-fn render_graph(frame: &mut Frame, snapshot: &SortSnapshot) {
+fn render_graph(frame: &mut Frame, snapshot: &SortSnapshot) -> Result<(), Error> {
 	let data = snapshot.get_data();
 	let sort_type = snapshot.get_sort_type();
 	
 	/* Calculate bar width and gaps */
-	let (bar_width, bar_gap) = bar_sizes(frame.area().width, data.len());
+	let (bar_width, bar_gap) = bar_sizes(frame.area().width, data.len())?;
 
 	/* Chart Width = n * (width + gap) - extra gap + padding */
 	let chart_width = (data.len() as u16 * (bar_width + bar_gap)) - bar_gap + CHART_PAD;
@@ -104,6 +104,8 @@ fn render_graph(frame: &mut Frame, snapshot: &SortSnapshot) {
 
 	/* Render bar chart with set area */
 	frame.render_widget(bar_chart, area);
+
+	Ok(())
 }
 
 
@@ -171,7 +173,7 @@ fn build_bars(bar_width: u16, data: &Vec<u64>) -> BarGroup {
 }
 
 /* Calculate width and gap of bars */
-fn bar_sizes(term_width: u16, quantity: usize) -> (u16, u16) {
+fn bar_sizes(term_width: u16, quantity: usize) -> Result<(u16, u16), Error> {
 	let usable_term_width = term_width - HORIZ_PAD - CHART_PAD;
 	let mut bar_gap: u16 = MAX_BAR_GAP;
 	
@@ -187,11 +189,11 @@ fn bar_sizes(term_width: u16, quantity: usize) -> (u16, u16) {
 			/* If bar width is valid, clamp and return */
 			if bar_width >= 1.0 {
 				let clamped_bar_width = (bar_width.floor() as u16).clamp(BAR_WIDTH_MIN, BAR_WIDTH_MAX);
-				return (clamped_bar_width, bar_gap);
+				return Ok((clamped_bar_width, bar_gap));
 			}
 		} 
 		
 		/* If gap is invalid, minus 1 and reattempt */
-		bar_gap = bar_gap.checked_sub(1).expect("Bar width could not be calculated");
+		bar_gap = bar_gap.checked_sub(1).ok_or(Error::BarOverflow(quantity))?;
 	}
 }
