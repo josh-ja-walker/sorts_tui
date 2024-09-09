@@ -11,21 +11,21 @@ pub struct SortSnapshot {
 }
 
 impl SortSnapshot {
-    pub fn get_data(&self) -> Vec<u64> {
-        self.data.clone()
+    pub fn get_data(&self) -> &Vec<u64> {
+        &self.data
     }
-
+    
     pub fn is_sorted(&self) -> bool {
         self.is_sorted
-    } 
-
-    pub fn get_count(&self) -> Count {
-        self.count.clone()
     } 
     
     pub fn get_sort_type(&self) -> SortType {
         self.sort_type
     }
+    
+    pub fn get_count(&self) -> &Count {
+        &self.count
+    } 
 }
 
 
@@ -43,9 +43,9 @@ impl<'a, R: Renderer> Sort<'a, R> {
         Sort {
             renderer,
             sort,
-            count: Count::new(sort.count_type()),
             data: gen_data(quantity),
             tick_rate,
+            count: Count::new(sort.count_type()),
         }
     }
 

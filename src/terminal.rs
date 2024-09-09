@@ -1,10 +1,16 @@
 use std::time::Duration;
 
 use ratatui::{
-	crossterm::event::{self, Event, KeyCode, KeyEventKind}, layout::{Constraint, Layout, Rect}, style::{Style, Stylize}, text::{Line, Text}, widgets::{Bar, BarChart, BarGroup, Block, Borders, Clear, Padding, Paragraph}, DefaultTerminal, Frame 
+	DefaultTerminal, 
+	Frame,
+	style::{Style, Stylize}, 
+	text::{Line, Text, ToText}, 
+	layout::{Constraint, Layout, Rect}, 
+	crossterm::event::{self, Event, KeyCode, KeyEventKind}, 
+	widgets::{Bar, BarChart, BarGroup, Block, Borders, Clear, Padding, Paragraph}, 
 };
 
-use crate::{sort::SortSnapshot, Error, Renderer};
+use crate::{sort::SortSnapshot, analytics::Analytics, Error, Renderer};
 
 const MAX_BAR_GAP: u16 = 1;
 const BAR_WIDTH_MIN: u16 = 1;
@@ -62,6 +68,7 @@ impl Renderer for Terminal {
 	}
 }
 
+
 /* Render bar graph */
 fn render_graph(frame: &mut Frame, snapshot: &SortSnapshot) {
 	let data = snapshot.get_data();
@@ -99,6 +106,7 @@ fn render_graph(frame: &mut Frame, snapshot: &SortSnapshot) {
 	frame.render_widget(bar_chart, area);
 }
 
+
 /* Render popup to show sorted */
 fn render_popup(frame: &mut Frame, snapshot: &SortSnapshot) {
 	let sort_type = snapshot.get_sort_type();
@@ -116,16 +124,22 @@ fn render_popup(frame: &mut Frame, snapshot: &SortSnapshot) {
 	/* Set up containing block */
 	let block = Block::default().borders(Borders::ALL);
 
-	let popup = Paragraph::new(
-		Text::from(vec![
-			Line::raw("Sorted!").bold(),
-			Line::styled(format!("{}", snapshot.get_count()), sort_type.color()),
-		]))
-	.block(block)
-	.centered();
+	let mut text = Text::from(vec![
+		Line::styled("Sorted!", sort_type.color()).bold(),
+		Line::styled(format!("{}", snapshot.get_count()), sort_type.color()),
+		Line::raw(""),
+	]);
+	
+	let analytics: Analytics = sort_type.analytics();
+	text.extend(analytics.to_text().lines.into_iter());
+
+ 	let popup = Paragraph::new(text)
+		.block(block)
+		.centered();
 
 	frame.render_widget(popup, popup_area)
 }
+
 
 /* Build a bar from value */
 fn bar<'a>(value: u64, max_pows: u32, bar_width: u16) -> Bar<'a> {

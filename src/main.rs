@@ -4,9 +4,10 @@ use terminal::Terminal;
 
 use std::{fmt::{self, Display}, io::{self}, time::Duration};
 
-mod sort_type;
 mod sort;
+mod sort_type;
 mod count;
+mod analytics;
 mod terminal;
 
 use sort_type::SortType;

@@ -1,10 +1,10 @@
 use std::fmt::{self, Display};
 
 use clap::ValueEnum;
-use ratatui::{style::Color, text::Span};
+use ratatui::style::Color;
 use strum_macros::EnumIter;
 
-use crate::count::CountType;
+use crate::{analytics::{Analytics, Complexity, Notation, Rate}, count::CountType};
 
 #[derive(ValueEnum, EnumIter, Debug, Clone, Copy)]
 pub enum SortType {
@@ -31,16 +31,6 @@ impl SortType {
 		Color::Rgb(r, g, b)
 	}
 
-	fn uncolored_string(&self) -> String {
-		format!("{} Sort", match self {
-			SortType::Bogo => "Bogo",
-			SortType::Bubble => "Bubble",
-			SortType::Insertion => "Insertion",
-			SortType::Merge => "Merge",
-			SortType::Quick => "Quick",
-		})
-	}
-
 	pub fn count_type(&self) -> CountType {
 		match self {
 			SortType::Bogo => CountType::Shuffles,
@@ -50,10 +40,58 @@ impl SortType {
 			SortType::Quick => todo!(),
 		}
 	}
+
+	/* Worst, average and best time complexities */
+	fn time_complexity(&self) -> (Complexity, Complexity, Complexity) {
+		match self {
+			SortType::Bogo => (
+				Complexity::big_o(Rate::Infinite), 
+				Complexity::new(Notation::LowerOmega, Rate::NNFact), 
+				Complexity::new(Notation::UpperOmega, Rate::Linear), 
+			),
+			SortType::Bubble | SortType::Insertion => (
+				Complexity::big_o(Rate::Quadratic), 
+				Complexity::big_o(Rate::Quadratic), 
+				Complexity::big_o(Rate::Linear), 
+			),
+			SortType::Merge => (
+				Complexity::big_o(Rate::NLogN), 
+				Complexity::new(Notation::Theta, Rate::NLogN), 
+				Complexity::new(Notation::UpperOmega, Rate::NLogN), 
+			),
+			SortType::Quick => (
+				Complexity::big_o(Rate::Quadratic),
+				Complexity::big_o(Rate::NLogN),
+				Complexity::big_o(Rate::NLogN),
+			),
+		}
+	}
+
+	/* Worst case space complexity */
+	fn space_complexity(&self) -> Complexity {
+		Complexity::big_o(match self {
+			SortType::Bogo => Rate::Linear,
+			SortType::Bubble => Rate::Linear,
+			SortType::Insertion => Rate::Linear,
+			SortType::Merge => Rate::Linear,
+			SortType::Quick => Rate::Linear,
+		})
+	}
+
+	pub fn analytics(&self) -> Analytics {
+		let (worst, average, best) = self.time_complexity();
+		Analytics::new(worst, best, average, self.space_complexity())
+	}
 }
 
 impl Display for SortType {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		write!(f, "{}", Span::styled(self.uncolored_string(), self.color()))
+		write!(f, "{} Sort", match self {
+			SortType::Bogo => "Bogo",
+			SortType::Bubble => "Bubble",
+			SortType::Insertion => "Insertion",
+			SortType::Merge => "Merge",
+			SortType::Quick => "Quick",
+		})
 	}
 }
