@@ -1,11 +1,12 @@
 use clap::{value_parser, Parser};
-use console::Term;
-use sort::Sort;
+use sort::{Sort, SortSnapshot};
+use terminal::Terminal;
 
-use std::{fmt::{self, Display}, io::{self}};
+use std::{fmt::{self, Display}, io::{self}, time::Duration};
 
 mod sort_type;
 mod sort;
+mod count;
 mod terminal;
 
 use sort_type::SortType;
@@ -46,7 +47,6 @@ impl Display for Error {
 #[command(version, about, long_about = None)]
 struct Args {
     /// Sort algorithm to use
-    // #[arg(short, long = "sort")]
     sort_type: SortType,
 	
     /// Number of items to sort (2 - 150)
@@ -62,9 +62,21 @@ struct Args {
 
 fn main() -> Result<(), Error> {    
 	let args = Args::parse();
-
-	let count = Sort::with_args(args).run()?;
-	Term::stdout().write_line(&format!("Sorted: {} performed", count))?;
+	let mut terminal = Terminal::new()?;
 	
+	let _count = Sort::from_args(&mut terminal, args).run()?;
+
+	terminal.restore()?;
 	Ok(())
+}
+
+
+trait Renderer {
+	fn tick(&mut self, snapshot: SortSnapshot, duration: Duration) -> Result<(), Error> {
+		self.render(snapshot)?;
+		self.sleep(duration)
+	}
+	
+	fn render(&mut self, snapshot: SortSnapshot) -> Result<(), Error>;
+	fn sleep(&self, duration: Duration) -> Result<(), Error>;
 }

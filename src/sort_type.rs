@@ -4,6 +4,8 @@ use clap::ValueEnum;
 use ratatui::{style::Color, text::Span};
 use strum_macros::EnumIter;
 
+use crate::count::CountType;
+
 #[derive(ValueEnum, EnumIter, Debug, Clone, Copy)]
 pub enum SortType {
 	Bogo,
@@ -37,6 +39,16 @@ impl SortType {
 			SortType::Merge => "Merge",
 			SortType::Quick => "Quick",
 		})
+	}
+
+	pub fn count_type(&self) -> CountType {
+		match self {
+			SortType::Bogo => CountType::Shuffles,
+			SortType::Bubble => CountType::Comparisons,
+			SortType::Insertion => todo!(),
+			SortType::Merge => todo!(),
+			SortType::Quick => todo!(),
+		}
 	}
 }
 

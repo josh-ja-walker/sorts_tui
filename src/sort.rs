@@ -1,97 +1,83 @@
-use std::{fmt::{self, Display}, time::Duration};
-
+use std::time::Duration;
 use rand::{seq::SliceRandom, thread_rng};
-use strum_macros::Display;
 
-use crate::{sort_type::SortType, terminal::Terminal, Args, Error};
+use crate::{count::Count, sort_type::SortType, Args, Error, Renderer};
 
-
-
-pub struct Count {
-    count: usize,
-    #[allow(dead_code)] count_type: CountType,
+pub struct SortSnapshot {
+    data: Vec<u64>,    
+    is_sorted: bool,
+    sort_type: SortType,
+    count: Count,
 }
 
-impl Count {
-    fn new(count_type: CountType) -> Count {
-        Count {
-            count: 0,
-            count_type
-        }
+impl SortSnapshot {
+    pub fn get_data(&self) -> Vec<u64> {
+        self.data.clone()
+    }
+
+    pub fn is_sorted(&self) -> bool {
+        self.is_sorted
     } 
 
-    fn increment(&mut self) {
-        self.count += 1
-    }
-}
-
-#[derive(Display)]
-enum CountType {
-    Shuffles,
-    Comparisons
-}
-
-impl Display for Count {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{} {}",
-            self.count,
-            self.count_type.to_string().to_lowercase()
-        )
+    pub fn get_count(&self) -> Count {
+        self.count.clone()
+    } 
+    
+    pub fn get_sort_type(&self) -> SortType {
+        self.sort_type
     }
 }
 
 
-fn gen_data(quantity: usize) -> Vec<u64> {
-    let mut data: Vec<u64> = (1..(quantity as u64 + 1)).collect();
-    data.shuffle(&mut thread_rng());
-    return data;
-}
-
-
-pub struct Sort {
+pub struct Sort<'a, R: Renderer> {
+    renderer: &'a mut R,
 	sort: SortType,
+    count: Count,
+    data: Vec<u64>,
     tick_rate: u64,
- 	data: Vec<u64>,
-    terminal: Terminal,
 }
 
-impl Sort {
-    pub fn new(sort: SortType, quantity: usize, tick_rate: u64) -> Sort {
+
+impl<'a, R: Renderer> Sort<'a, R> {
+    pub fn new(renderer: &'a mut R, sort: SortType, quantity: usize, tick_rate: u64) -> Sort<R> {
         Sort {
+            renderer,
             sort,
-            tick_rate,
-            terminal: Terminal::new().unwrap(),
+            count: Count::new(sort.count_type()),
             data: gen_data(quantity),
+            tick_rate,
         }
     }
 
-    pub fn with_args(args: Args) -> Sort {
-        Sort::new(args.sort_type, (args.quantity as u64).try_into().unwrap(), args.tick_rate)
+    pub fn from_args(renderer: &'a mut R, args: Args) -> Sort<R> {
+        Sort::new(
+            renderer,
+            args.sort_type, 
+            (args.quantity as u64).try_into().unwrap(), 
+            args.tick_rate
+        )
+    }
+    
+    /* Generate snapshot to render */
+    pub fn snapshot(&self) -> SortSnapshot {
+        SortSnapshot {
+            data: self.data.clone(),
+            is_sorted: self.is_sorted(),
+            sort_type: self.sort,
+            count: self.count.clone(),
+        }
     }
 
-    /* Render bar chart in terminal */
-    fn render(&mut self) -> Result<(), Error> {
-        let sort = self.sort.clone();
-        self.terminal.render(sort, &self.data)
-    }
-
-    /* Wait another tick */
-    fn sleep(&self) -> Result<(), Error> {
-        Terminal::sleep(Duration::from_millis(self.tick_rate))
-    }
-
-    /* Re-render chart and wait tick */
-    fn reload(&mut self) -> Result<(), Error> {
-        self.render()?;
-        self.sleep()
-    }
-
+    /* Check if data is sorted */
+	pub fn is_sorted(&self) -> bool {
+        self.data.windows(2).all(|w| w[0] <= w[1])
+	}
 
     /* Run the sorting algorithm, rendering to terminal */
     pub fn run(mut self) -> Result<Count, Error> {
-        self.reload()?;
+        self.renderer.tick(self.snapshot(), Duration::from_millis(self.tick_rate))?;
         
-        let count = match self.sort {
+        match self.sort {
             SortType::Bogo => self.bogosort(),
             SortType::Bubble => self.bubble_sort(),
             SortType::Insertion => todo!(),
@@ -99,38 +85,30 @@ impl Sort {
             SortType::Quick => todo!(),
         }?;
 
-        Terminal::sleep(Duration::from_millis(5000))?;
-        self.terminal.restore()?;
+        self.renderer.tick(self.snapshot(), Duration::from_millis(5000))?;
 
-        Ok(count)
+        Ok(self.count)
 	}
 
-    /* Check if data is sorted */
-	fn is_sorted(&self) -> bool {
-        self.data.windows(2).all(|w| w[0] <= w[1])
-	}
-    
     /* Perform bogosort */
-    fn bogosort(&mut self) -> Result<Count, Error> {
+    fn bogosort(&mut self) -> Result<(), Error> {
         let mut rng = rand::thread_rng();
-        let mut count = Count::new(CountType::Shuffles);
 
         loop {
             if self.is_sorted() { break; }
             
             self.data.shuffle(&mut rng);
-            count.increment();
+            self.count.increment();
             
-            self.reload()?;
+            self.renderer.tick(self.snapshot(), Duration::from_millis(self.tick_rate))?;
         }
 
-        Ok(count)
+        Ok(())
     }
 
     /* Perform bubble sort */
-    fn bubble_sort(&mut self) -> Result<Count, Error> {
+    fn bubble_sort(&mut self) -> Result<(), Error> {
         let mut swapped: bool;
-        let mut count = Count::new(CountType::Comparisons);
 
         for i in 0 .. self.data.len() - 1 {
             swapped = false;
@@ -138,10 +116,10 @@ impl Sort {
             for j in 0 .. self.data.len() - i - 1 {
                 if self.data[j] > self.data[j + 1] {
                     self.data.swap(j, j + 1);
-                    count.increment();
+                    self.count.increment();
 
-                    self.reload()?;
-                    
+                    self.renderer.tick(self.snapshot(), Duration::from_millis(self.tick_rate))?;
+
                     swapped = true;
                 }
             }
@@ -151,7 +129,14 @@ impl Sort {
             }
         }
 
-        Ok(count)
+        Ok(())
     }
 
+}
+
+
+fn gen_data(quantity: usize) -> Vec<u64> {
+    let mut data: Vec<u64> = (1..(quantity as u64 + 1)).collect();
+    data.shuffle(&mut thread_rng());
+    return data;
 }
