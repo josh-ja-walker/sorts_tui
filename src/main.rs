@@ -43,7 +43,7 @@ impl Display for Error {
 }
 
 
-/// Sort terminal visualizer
+/// Sorts TUI: terminal interface for rendering and simulating sorting algorithms
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Args {
