@@ -175,6 +175,7 @@ impl<'a, R: Renderer> Sort<'a, R> {
 
     /* Merge together data[left..mid) and data[mid..right) */
     fn merge(&mut self, left: usize, mid: usize, right: usize) -> Result<(), Error> {
+        /* Temp arrays to save values */
         let left_data: Vec<u64> = self.data[left..mid].to_vec().clone();
         let right_data: Vec<u64> = self.data[mid..right].to_vec().clone();
 
@@ -183,6 +184,7 @@ impl<'a, R: Renderer> Sort<'a, R> {
 
         let mut k: usize = left;
 
+        /* Merge temp arrays back into data */
         while i < left_data.len() && j < right_data.len() {
             if left_data[i] <= right_data[j] {
                 self.data[k] = left_data[i];
@@ -198,6 +200,7 @@ impl<'a, R: Renderer> Sort<'a, R> {
             self.renderer.tick(self.snapshot(), Duration::from_millis(self.tick_rate))?;
         }
 
+        /* Copy remaining left array elements into data */
         for i in i..left_data.len() {
             self.data[k] = left_data[i];
             k += 1;
@@ -205,6 +208,7 @@ impl<'a, R: Renderer> Sort<'a, R> {
             self.renderer.tick(self.snapshot(), Duration::from_millis(self.tick_rate))?;
         }
 
+        /* Copy remaining right array elements into data */
         for j in j..right_data.len() {
             self.data[k] = right_data[j];
             k += 1;
