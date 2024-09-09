@@ -53,7 +53,7 @@ struct Args {
     /// Number of items to sort (2 - 150)
     #[arg(short = 'n', long, 
 		default_value_t = DEFAULT_QUANTITY, 
-		value_parser = value_parser!(u64).range(MIN_QUANTITY..MAX_QUANTITY + 1))]
+		value_parser = value_parser!(u64).range(MIN_QUANTITY..=MAX_QUANTITY))]
 	quantity: u64,
 
 	/// How often interface reloads (in milliseconds)
