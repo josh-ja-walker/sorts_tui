@@ -5,7 +5,7 @@ use ratatui::{
 	Frame,
 	style::{Style, Stylize}, 
 	text::{Line, Text, ToText}, 
-	layout::{Constraint, Layout, Rect}, 
+	layout::{Constraint, Layout}, 
 	crossterm::event::{self, Event, KeyCode, KeyEventKind}, 
 	widgets::{Bar, BarChart, BarGroup, Block, Borders, Clear, Padding, Paragraph}, 
 };
@@ -110,13 +110,18 @@ fn render_graph(frame: &mut Frame, snapshot: &SortSnapshot) {
 /* Render popup to show sorted */
 fn render_popup(frame: &mut Frame, snapshot: &SortSnapshot) {
 	let sort_type = snapshot.get_sort_type();
-	
-	let popup_area = Rect {
-        x: frame.area().width / 3,
-        y: frame.area().height / 3,
-        width: frame.area().width / 4,
-        height: frame.area().height / 4,
-    };
+
+	let [_, horiz_area, _] = Layout::horizontal([
+			Constraint::Min(0), 
+			Constraint::Percentage(20), 
+			Constraint::Min(0)
+		]).areas(frame.area());
+
+	let [_, popup_area, _] = Layout::vertical([
+			Constraint::Min(0), 
+			Constraint::Percentage(25), 
+			Constraint::Min(0)
+		]).areas(horiz_area);
 
 	/* Clear popup area */
 	frame.render_widget(Clear, popup_area);
