@@ -37,7 +37,7 @@ impl SortType {
 			SortType::Bubble => CountType::Comparisons,
 			SortType::Insertion => CountType::Comparisons,
 			SortType::Merge => todo!(),
-			SortType::Quick => todo!(),
+			SortType::Quick => CountType::Comparisons,
 		}
 	}
 

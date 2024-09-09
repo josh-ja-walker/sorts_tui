@@ -82,7 +82,7 @@ impl<'a, R: Renderer> Sort<'a, R> {
             SortType::Bubble => self.bubble_sort(),
             SortType::Insertion => self.insertion_sort(),
             SortType::Merge => todo!(),
-            SortType::Quick => todo!(),
+            SortType::Quick => self.quick_sort(),
         }?;
 
         self.renderer.tick(self.snapshot(), Duration::from_millis(5000))?;
@@ -151,6 +151,46 @@ impl<'a, R: Renderer> Sort<'a, R> {
         }
         
         Ok(())
+    }
+
+    /* Perform quick sort */
+    fn quick_sort(&mut self) -> Result<(), Error> {
+        self.quick_sort_helper(0, self.data.len() - 1)
+    }
+
+    /* Quick sort recursive function */
+    fn quick_sort_helper(&mut self, start: usize, end: usize) -> Result<(), Error> {
+        if start < end {
+            let partition_index = self.partition(start, end)?;
+    
+            self.quick_sort_helper(start, partition_index.checked_sub(1).unwrap_or(start))?;
+            self.renderer.tick(self.snapshot(), Duration::from_millis(self.tick_rate))?;
+            
+            self.quick_sort_helper(partition_index + 1, end)?;
+            self.renderer.tick(self.snapshot(), Duration::from_millis(self.tick_rate))?;
+        }
+
+        Ok(())
+    }
+
+    fn partition(&mut self, start: usize, end: usize) -> Result<usize, Error> {
+        let pivot = self.data[end];
+        let mut i = start;
+    
+        for j in start .. end {
+            if self.data[j] <= pivot {
+                self.count.increment();
+                self.data.swap(i, j);
+                self.renderer.tick(self.snapshot(), Duration::from_millis(self.tick_rate))?;
+                
+                i += 1;
+            }
+        }
+        
+        self.data.swap(i, end);
+        self.renderer.tick(self.snapshot(), Duration::from_millis(self.tick_rate))?;
+
+        Ok(i)
     }
 
 }
