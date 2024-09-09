@@ -35,7 +35,7 @@ impl SortType {
 		match self {
 			SortType::Bogo => CountType::Shuffles,
 			SortType::Bubble => CountType::Comparisons,
-			SortType::Insertion => todo!(),
+			SortType::Insertion => CountType::Comparisons,
 			SortType::Merge => todo!(),
 			SortType::Quick => todo!(),
 		}

@@ -80,7 +80,7 @@ impl<'a, R: Renderer> Sort<'a, R> {
         match self.sort {
             SortType::Bogo => self.bogosort(),
             SortType::Bubble => self.bubble_sort(),
-            SortType::Insertion => todo!(),
+            SortType::Insertion => self.insertion_sort(),
             SortType::Merge => todo!(),
             SortType::Quick => todo!(),
         }?;
@@ -129,6 +129,27 @@ impl<'a, R: Renderer> Sort<'a, R> {
             }
         }
 
+        Ok(())
+    }
+
+    /* Perform insertion sort */
+    fn insertion_sort(&mut self) -> Result<(), Error> {
+        for i in 1 .. self.data.len() {
+            let key = self.data[i];
+            let mut j = i;
+    
+            /* Move elements forward if greater than key */
+            while j > 0 && self.data[j - 1] > key {
+                self.data[j] = self.data[j - 1];
+                j -= 1;
+                
+                self.count.increment();
+                self.renderer.tick(self.snapshot(), Duration::from_millis(self.tick_rate))?;
+            }
+
+            self.data[j] = key;
+        }
+        
         Ok(())
     }
 
