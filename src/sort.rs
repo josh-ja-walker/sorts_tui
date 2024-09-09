@@ -81,7 +81,7 @@ impl<'a, R: Renderer> Sort<'a, R> {
             SortType::Bogo => self.bogosort(),
             SortType::Bubble => self.bubble_sort(),
             SortType::Insertion => self.insertion_sort(),
-            SortType::Merge => todo!(),
+            SortType::Merge => self.merge_sort(),
             SortType::Quick => self.quick_sort(),
         }?;
 
@@ -152,6 +152,69 @@ impl<'a, R: Renderer> Sort<'a, R> {
         
         Ok(())
     }
+
+
+    /* Perform merge sort */
+    fn merge_sort(&mut self) -> Result<(), Error> {
+        self.merge_sort_helper(0, self.data.len())
+    }
+
+    /* Merge sort recursive indexed function */
+    fn merge_sort_helper(&mut self, left: usize, right: usize) -> Result<(), Error> {
+        if left < right - 1 {
+            let mid: usize = left + (right - left) / 2;
+
+            self.merge_sort_helper(left, mid)?;
+            self.merge_sort_helper(mid, right)?;
+
+            self.merge(left, mid, right)?;
+        }
+
+        Ok(())
+    }
+
+    /* Merge together data[left..mid) and data[mid..right) */
+    fn merge(&mut self, left: usize, mid: usize, right: usize) -> Result<(), Error> {
+        let left_data: Vec<u64> = self.data[left..mid].to_vec().clone();
+        let right_data: Vec<u64> = self.data[mid..right].to_vec().clone();
+
+        let mut i: usize = 0;
+        let mut j: usize = 0;
+
+        let mut k: usize = left;
+
+        while i < left_data.len() && j < right_data.len() {
+            if left_data[i] <= right_data[j] {
+                self.data[k] = left_data[i];
+                i += 1;
+            } else {
+                self.data[k] = right_data[j];
+                j += 1;
+            }
+            
+            k += 1;
+            
+            self.count.increment();
+            self.renderer.tick(self.snapshot(), Duration::from_millis(self.tick_rate))?;
+        }
+
+        for i in i..left_data.len() {
+            self.data[k] = left_data[i];
+            k += 1;
+
+            self.renderer.tick(self.snapshot(), Duration::from_millis(self.tick_rate))?;
+        }
+
+        for j in j..right_data.len() {
+            self.data[k] = right_data[j];
+            k += 1;
+
+            self.renderer.tick(self.snapshot(), Duration::from_millis(self.tick_rate))?;
+        }
+
+        Ok(())
+    }
+
 
     /* Perform quick sort */
     fn quick_sort(&mut self) -> Result<(), Error> {
