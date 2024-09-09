@@ -155,7 +155,7 @@ impl<'a, R: Renderer> Sort<'a, R> {
 
     /* Perform quick sort */
     fn quick_sort(&mut self) -> Result<(), Error> {
-        self.quick_sort_helper(0, self.data.len() - 1)
+        self.quick_sort_helper(0, self.data.len())
     }
 
     /* Quick sort recursive function */
@@ -163,7 +163,7 @@ impl<'a, R: Renderer> Sort<'a, R> {
         if start < end {
             let partition_index = self.partition(start, end)?;
     
-            self.quick_sort_helper(start, partition_index.checked_sub(1).unwrap_or(start))?;
+            self.quick_sort_helper(start, partition_index)?;
             self.renderer.tick(self.snapshot(), Duration::from_millis(self.tick_rate))?;
             
             self.quick_sort_helper(partition_index + 1, end)?;
@@ -173,11 +173,12 @@ impl<'a, R: Renderer> Sort<'a, R> {
         Ok(())
     }
 
+    /* Partition slice start to end, using data[end - 1] as pivot */
     fn partition(&mut self, start: usize, end: usize) -> Result<usize, Error> {
-        let pivot = self.data[end];
+        let pivot = self.data[end - 1];
         let mut i = start;
-    
-        for j in start .. end {
+        
+        for j in start .. end - 1 {
             if self.data[j] <= pivot {
                 self.count.increment();
                 self.data.swap(i, j);
@@ -187,7 +188,7 @@ impl<'a, R: Renderer> Sort<'a, R> {
             }
         }
         
-        self.data.swap(i, end);
+        self.data.swap(i, end - 1);
         self.renderer.tick(self.snapshot(), Duration::from_millis(self.tick_rate))?;
 
         Ok(i)
