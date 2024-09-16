@@ -21,7 +21,7 @@ impl SortType {
 			SortType::Bogo => (219, 77, 59),
 			SortType::Bubble => (59, 126, 219),
 			SortType::Insertion => (219, 124, 59),
-			SortType::Merge => (50, 150, 52),
+			SortType::Merge => (42, 183, 44),
 			SortType::Quick => (240, 128, 128),
 		}		
 	}
