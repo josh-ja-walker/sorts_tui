@@ -153,6 +153,7 @@ fn render_graph(frame: &mut Frame, snapshot: &SortSnapshot) -> Result<(), Error>
 		.bar_style(Style::default().fg(sort_type.color()))
 		.bar_width(bar_settings.width)
 		.bar_gap(bar_settings.gap)
+		.max(data.len() as u64)
 		.data(build_bars(bar_settings, &data));
 
 	/* Render bar chart with set area */
