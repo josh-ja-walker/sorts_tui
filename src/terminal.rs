@@ -12,9 +12,62 @@ use ratatui::{
 
 use crate::{sort::SortSnapshot, analytics::Analytics, Error, Renderer};
 
-const MAX_BAR_GAP: u16 = 1;
+const BAR_GAP_MAX: u16 = 1;
 const BAR_WIDTH_MIN: u16 = 1;
 const BAR_WIDTH_MAX: u16 = 3;
+
+#[derive(Debug, Clone, Copy)]
+struct BarSettings {
+	width: u16,
+	gap: u16,
+}
+
+impl BarSettings {
+	/* Calculate width and gap of bars */
+	fn calc(term_width: u16, quantity: usize) -> Result<BarSettings, Error> {
+		let mut bar_settings = BarSettings::max();
+		let usable_term_width = term_width - HORIZ_PAD - CHART_PAD;
+
+		loop {
+			/* Width of all gaps */
+			let total_gap_width: u16 = bar_settings.gap * (quantity - 1) as u16;
+			
+			/* If terminal width - total gaps > 0 */
+			if let Some(all_bars_width) = usable_term_width.checked_sub(total_gap_width) {
+				/* Calculate individual bar width */
+				let bar_width: f32 = all_bars_width as f32 / (quantity as f32);
+				
+				/* If bar width is valid, clamp and return */
+				if bar_width >= 1.0 {
+					let clamped_bar_width = (bar_width.floor() as u16)
+						.clamp(BAR_WIDTH_MIN, BAR_WIDTH_MAX);
+
+					if clamped_bar_width == bar_settings.gap && bar_settings.gap == 1 {
+						bar_settings.gap = 0;
+						continue;
+					} else {
+						bar_settings.width = clamped_bar_width;
+						break;
+					}
+				}
+			}
+			
+			/* If gap is invalid, minus 1 and reattempt */
+			bar_settings.gap = bar_settings.gap.checked_sub(1).ok_or(Error::BarOverflow(quantity))?;
+		}
+
+		Ok(bar_settings)
+	}
+
+	fn max() -> BarSettings {
+		BarSettings {
+			width: BAR_WIDTH_MAX,
+			gap: BAR_GAP_MAX,
+		}
+	}
+}
+
+
 
 const HORIZ_PAD: u16 = 4;
 const CHART_PAD: u16 = 2;
@@ -75,10 +128,10 @@ fn render_graph(frame: &mut Frame, snapshot: &SortSnapshot) -> Result<(), Error>
 	let sort_type = snapshot.get_sort_type();
 	
 	/* Calculate bar width and gaps */
-	let (bar_width, bar_gap) = bar_sizes(frame.area().width, data.len())?;
+	let bar_settings = BarSettings::calc(frame.area().width, data.len())?;
 
 	/* Chart Width = n * (width + gap) - extra gap + padding */
-	let chart_width = (data.len() as u16 * (bar_width + bar_gap)) - bar_gap + CHART_PAD;
+	let chart_width = (data.len() as u16 * (bar_settings.width + bar_settings.gap)) - bar_settings.gap + CHART_PAD;
 	
 	/* Set up layout of chart - set width and center */
 	let [_, area, _] = Layout::horizontal([
@@ -98,9 +151,9 @@ fn render_graph(frame: &mut Frame, snapshot: &SortSnapshot) -> Result<(), Error>
 	let bar_chart = BarChart::default()
 		.block(block)
 		.bar_style(Style::default().fg(sort_type.color()))
-		.bar_width(bar_width)
-		.bar_gap(bar_gap)
-		.data(build_bars(bar_width, &data));
+		.bar_width(bar_settings.width)
+		.bar_gap(bar_settings.gap)
+		.data(build_bars(bar_settings, &data));
 
 	/* Render bar chart with set area */
 	frame.render_widget(bar_chart, area);
@@ -149,8 +202,8 @@ fn render_popup(frame: &mut Frame, snapshot: &SortSnapshot) {
 
 
 /* Build a bar from value */
-fn bar<'a>(value: u64, max_pows: u32, bar_width: u16) -> Bar<'a> {
-	let format_val = |x: u64| (max_pows <= bar_width as u32)
+fn bar<'a>(value: u64, max_pows: u32, bar_settings: BarSettings) -> Bar<'a> {
+	let format_val = |x: u64| (max_pows <= bar_settings.width as u32 && bar_settings.gap != 0)
 		.then_some(x.to_string())
 		.unwrap_or(String::from(""));
 
@@ -161,39 +214,13 @@ fn bar<'a>(value: u64, max_pows: u32, bar_width: u16) -> Bar<'a> {
 }
 
 /* Build group of bars from the data */
-fn build_bars(bar_width: u16, data: &Vec<u64>) -> BarGroup {
+fn build_bars(bar_settings: BarSettings, data: &Vec<u64>) -> BarGroup {
 	let max: usize = data.len() + 1;
 	let max_pows: u32 = max.ilog10() + 1 as u32;
 	
 	BarGroup::default().bars(
 		&data.iter()
-			.map(|value| bar(*value, max_pows, bar_width))
+			.map(|value| bar(*value, max_pows, bar_settings))
 			.collect::<Vec<Bar>>()
 	)
-}
-
-/* Calculate width and gap of bars */
-fn bar_sizes(term_width: u16, quantity: usize) -> Result<(u16, u16), Error> {
-	let usable_term_width = term_width - HORIZ_PAD - CHART_PAD;
-	let mut bar_gap: u16 = MAX_BAR_GAP;
-	
-	loop {
-		/* Width of all gaps */
-		let total_gap_width: u16 = bar_gap * (quantity - 1) as u16;
-
-		/* If terminal width - total gaps > 0 */
-		if let Some(all_bars_width) = usable_term_width.checked_sub(total_gap_width) {
-			/* Calculate individual bar width */
-			let bar_width: f32 = all_bars_width as f32 / (quantity as f32);
-			
-			/* If bar width is valid, clamp and return */
-			if bar_width >= 1.0 {
-				let clamped_bar_width = (bar_width.floor() as u16).clamp(BAR_WIDTH_MIN, BAR_WIDTH_MAX);
-				return Ok((clamped_bar_width, bar_gap));
-			}
-		} 
-		
-		/* If gap is invalid, minus 1 and reattempt */
-		bar_gap = bar_gap.checked_sub(1).ok_or(Error::BarOverflow(quantity))?;
-	}
 }
