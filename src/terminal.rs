@@ -168,15 +168,15 @@ fn render_popup(frame: &mut Frame, snapshot: &SortSnapshot) {
 	let sort_type = snapshot.get_sort_type();
 
 	let [_, horiz_area, _] = Layout::horizontal([
-			Constraint::Min(0), 
-			Constraint::Percentage(20), 
-			Constraint::Min(0)
+			Constraint::Fill(1), 
+			Constraint::Min(25), 
+			Constraint::Fill(1)
 		]).areas(frame.area());
 
 	let [_, popup_area, _] = Layout::vertical([
-			Constraint::Min(0), 
-			Constraint::Percentage(25), 
-			Constraint::Min(0)
+			Constraint::Fill(1), 
+			Constraint::Percentage(40), 
+			Constraint::Fill(1)
 		]).areas(horiz_area);
 
 	/* Clear popup area */

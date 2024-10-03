@@ -80,7 +80,7 @@ impl SortType {
 
 	pub fn analytics(&self) -> Analytics {
 		let (worst, average, best) = self.time_complexity();
-		Analytics::new(worst, best, average, self.space_complexity())
+		Analytics::new(worst, average, best, self.space_complexity())
 	}
 }
 
